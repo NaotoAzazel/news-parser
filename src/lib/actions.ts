@@ -80,3 +80,19 @@ export async function getNewsTitle(page: Page) {
     return newsTitle
   })
 }
+
+interface HasPrevPageResult {
+  hasPreviousPage: boolean
+  linkToPrevPage: string | undefined
+}
+
+export async function hasPrevPage(page: Page): Promise<HasPrevPageResult> {
+  return await page.evaluate(() => {
+    const prevPageContainer = document.querySelector(".nav-previous")
+    const linkToPrevPage = prevPageContainer?.querySelector("a")?.href
+    return {
+      hasPreviousPage: !!linkToPrevPage,
+      linkToPrevPage: linkToPrevPage,
+    }
+  })
+}

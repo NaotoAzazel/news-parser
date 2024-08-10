@@ -1,6 +1,29 @@
-import puppeteer from "puppeteer"
-import { getArticleNews, getFirstNewsLink, getNewsTitle } from "./lib/actions"
+import puppeteer, { Page } from "puppeteer"
+import {
+  getArticleNews,
+  getFirstNewsLink,
+  getNewsTitle,
+  hasPrevPage,
+} from "./lib/actions"
 import { formatToNews } from "./lib/utils"
+
+async function parseNews(page: Page) {
+  const currentNewsTitle = await getNewsTitle(page)
+  const currentNewsContent = await getArticleNews(page)
+
+  const formatted = formatToNews({
+    blocks: currentNewsContent,
+    title: currentNewsTitle,
+  })
+
+  const { hasPreviousPage, linkToPrevPage } = await hasPrevPage(page)
+
+  return {
+    formattedNews: formatted,
+    hasPreviousPage,
+    linkToPrevPage,
+  }
+}
 
 async function start() {
   const browser = await puppeteer.launch({ headless: true }) // in prod: { headless: true }
@@ -11,15 +34,20 @@ async function start() {
     const firstNewsLink = await getFirstNewsLink(page)
     await page.goto(firstNewsLink)
 
-    const currentNewsTitle = await getNewsTitle(page)
-    const currentNewsContent = await getArticleNews(page)
+    let isContinue: boolean = true
 
-    const formatted = formatToNews({
-      blocks: currentNewsContent,
-      title: currentNewsTitle,
-    })
+    while (isContinue) {
+      const { formattedNews, hasPreviousPage, linkToPrevPage } =
+        await parseNews(page)
 
-    console.log("Formatted:", formatted)
+      if (hasPreviousPage) {
+        await page.goto(linkToPrevPage as string)
+      }
+
+      console.log(formattedNews)
+
+      isContinue = hasPreviousPage
+    }
   } catch (error) {
     console.error(error)
     await browser.close()
