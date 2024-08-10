@@ -1,18 +1,25 @@
 import puppeteer from "puppeteer"
-import { getFirstNewsLink, getNewsContent } from "./lib/actions"
+import { getArticleNews, getFirstNewsLink, getNewsTitle } from "./lib/actions"
+import { formatToNews } from "./lib/utils"
 
 async function start() {
-  const browser = await puppeteer.launch({ headless: false }) // in prod: { headless: true }
+  const browser = await puppeteer.launch({ headless: true }) // in prod: { headless: true }
   try {
     const page = await browser.newPage()
 
     await page.goto("https://odpk.org.ua/")
     const firstNewsLink = await getFirstNewsLink(page)
-
     await page.goto(firstNewsLink)
 
-    const currentNewsContent = await getNewsContent(page)
-    console.log("News content:", currentNewsContent)
+    const currentNewsTitle = await getNewsTitle(page)
+    const currentNewsContent = await getArticleNews(page)
+
+    const formatted = formatToNews({
+      blocks: currentNewsContent,
+      title: currentNewsTitle,
+    })
+
+    console.log("Formatted:", formatted)
   } catch (error) {
     console.error(error)
     await browser.close()

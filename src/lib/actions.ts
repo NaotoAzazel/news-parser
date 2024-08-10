@@ -1,5 +1,6 @@
 import { Page } from "puppeteer"
-import { formatChild, formatNewsContent } from "./utils"
+import { Blocks } from "../types/news"
+import { formatChild } from "./utils"
 
 export async function getFirstNewsLink(page: Page): Promise<string> {
   return await page.evaluate(() => {
@@ -19,12 +20,6 @@ export async function getFirstNewsLink(page: Page): Promise<string> {
   })
 }
 
-export async function getNewsContent(page: Page) {
-  const rawNewsContent = await getArticleNews(page)
-  const formattedResult = formatNewsContent(rawNewsContent)
-  return formattedResult
-}
-
 export async function getArticleNews(page: Page) {
   return await page
     .evaluate((formatChildFuncString) => {
@@ -33,6 +28,8 @@ export async function getArticleNews(page: Page) {
       const formatChildFunc = new Function(
         `return (${formatChildFuncString})`
       )()
+
+      const errors: string[] = []
 
       const currentNewsArticle = document.querySelector(".article-inner")
       if (!currentNewsArticle) {
@@ -44,23 +41,42 @@ export async function getArticleNews(page: Page) {
         throw new Error("Cannot find news content")
       }
 
-      function getLeafNodes(node: Element): string[] {
-        const result: string[] = []
+      function getLeafNodes(node: Element): Blocks[] {
+        const result: Blocks[] = []
 
         node.childNodes.forEach((child) => {
-          if (child.hasChildNodes()) {
-            result.push(...getLeafNodes(child as Element))
-          } else {
-            result.push(formatChildFunc(child))
+          try {
+            if (child.hasChildNodes()) {
+              result.push(...getLeafNodes(child as Element))
+            } else {
+              result.push(formatChildFunc(child))
+            }
+          } catch (error) {
+            if (error instanceof Error) {
+              errors.push(`Skipping node due to error: ${error.message}`)
+            }
           }
         })
 
         return result
       }
 
-      return getLeafNodes(newsContent)
+      return { blocks: getLeafNodes(newsContent), errors }
     }, formatChild.toString())
     .then((result) => {
-      return result
+      if (result.errors.length) {
+        console.warn("Errors occurred during processing:")
+        result.errors.forEach((error) => console.warn(error))
+      }
+
+      return result.blocks
     })
+}
+
+export async function getNewsTitle(page: Page) {
+  return await page.evaluate(() => {
+    const title = document.title
+    const newsTitle = title.split(" - ")[0]
+    return newsTitle
+  })
 }
