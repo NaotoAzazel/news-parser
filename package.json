@@ -5,7 +5,8 @@
   "scripts": {
     "clean": "del /s /q dist",
     "build": "npm run clean && tsc --build",
-    "start": "node ."
+    "start": "node .",
+    "dev": "npm run build && node ."
   },
   "keywords": [],
   "author": "",
