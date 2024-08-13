@@ -1,4 +1,5 @@
 import puppeteer, { Page } from "puppeteer"
+import { Database } from "./classes/database/database.class"
 import {
   getArticleNews,
   getFirstNewsLink,
@@ -26,8 +27,19 @@ async function parseNews(page: Page) {
 }
 
 async function start() {
+  const db = new Database()
+
+  try {
+    await db.connect()
+  } catch (error) {
+    console.log("Error when trying to connect to database:", error)
+    process.exit(1)
+  }
+
   const browser = await puppeteer.launch({ headless: true }) // in prod: { headless: true }
   try {
+    let nowParsingPageLink: string
+
     const page = await browser.newPage()
 
     await page.goto("https://odpk.org.ua/")
@@ -42,9 +54,12 @@ async function start() {
 
       if (hasPreviousPage) {
         await page.goto(linkToPrevPage as string)
+        nowParsingPageLink = linkToPrevPage as string
+        console.log("Now parsing news with link:", nowParsingPageLink)
       }
 
-      console.log(formattedNews)
+      const { id } = await db.createNews(formattedNews)
+      console.log(`News is stored in the database with id: ${id}`)
 
       isContinue = hasPreviousPage
     }

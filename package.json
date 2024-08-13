@@ -5,8 +5,8 @@
   "scripts": {
     "clean": "del /s /q dist",
     "build": "npm run clean && tsc --build",
-    "start": "node .",
-    "dev": "npm run build && node ."
+    "start": "dotenv -e .env.production.local -- node .",
+    "dev": "dotenv -e .env.development.local -- npm run build && node ."
   },
   "keywords": [],
   "author": "",
@@ -19,7 +19,10 @@
     "typescript-eslint": "^8.0.1"
   },
   "dependencies": {
+    "@prisma/client": "^5.18.0",
     "@types/puppeteer": "^7.0.4",
+    "dotenv-cli": "^7.4.2",
+    "prisma-json-types-generator": "^3.0.4",
     "puppeteer-core": "^23.0.2"
   }
 }
