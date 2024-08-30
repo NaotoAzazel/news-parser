@@ -1,3 +1,4 @@
+import { svg } from '../config/svg'
 import { Blocks, News } from "../types/news"
 
 export function formatChild(child: ChildNode): Blocks {
@@ -66,20 +67,44 @@ export function formatRawNewsText(array: string[]): string[] {
   return array.filter(Boolean).filter((line) => !trashSymbols.test(line))
 }
 
+const toBase64 = (src: string) => Buffer.from(src).toString("base64")
+
 interface FormatToNewsParams {
   title: string
   blocks: Blocks[]
 }
 
-export function formatToNews({
+export async function formatToNews({
   blocks,
   title,
-}: FormatToNewsParams): Omit<News, "id" | "createdAt" | "updatedAt"> {
+}: FormatToNewsParams): Promise<Omit<News, "id" | "createdAt" | "updatedAt">> {
   const now = new Date().getTime()
+
+  const blocksWithBase64 = await Promise.all(
+    blocks.map(async (block) => {
+      if (block.type === "image" && !block.data.file.base64) {
+        const base64 = toBase64(block.data.file.url)
+        const resultedBlurSVG = svg.blurSVG(base64) 
+
+        return {
+          ...block,
+          data: {
+            ...block.data,
+            file: {
+              ...block.data.file,
+              base64: `data:image/svg+xml;base64,${resultedBlurSVG}`,
+            },
+          },
+        }
+      }
+
+      return block
+    })
+  )
 
   return {
     title,
-    content: { blocks, time: now, version: "2.29.1" },
+    content: { blocks: blocksWithBase64, time: now, version: "2.29.1" },
     published: true,
   }
 }

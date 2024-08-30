@@ -12,7 +12,7 @@ async function parseNews(page: Page) {
   const currentNewsTitle = await getNewsTitle(page)
   const currentNewsContent = await getArticleNews(page)
 
-  const formatted = formatToNews({
+  const formatted = await formatToNews({
     blocks: currentNewsContent,
     title: currentNewsTitle,
   })
